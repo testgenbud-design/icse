@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TestGen AI — ICSE Test Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --ivory:    #FAF7F2;
+  --ivory2:   #F3EDE3;
+  --ivory3:   #EAE0D0;
+  --burg:     #7B1D3C;
+  --burg2:    #9B2550;
+  --burg3:    #5C1529;
+  --burg-dim: rgba(123,29,60,0.07);
+  --gold:     #B8860B;
+  --gold2:    #D4A017;
+  --gold-dim: rgba(184,134,11,0.1);
+  --ink:      #1A1208;
+  --ink2:     #3D2E1E;
+  --muted:    #8A7460;
+  --muted2:   #C4B09A;
+  --border:   #DDD0BC;
+  --border2:  #C8B89E;
+  --green:    #2D6A4F;
+  --green-dim:rgba(45,106,79,0.08);
+  --red:      #C0392B;
+  --ff:       'DM Sans', sans-serif;
+  --ffd:      'Playfair Display', serif;
+  --mono:     'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--ff);
+  background: var(--ivory);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Subtle texture overlay */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+/* Warm gradient orb */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 700px 500px at 15% 0%, rgba(123,29,60,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 600px 400px at 85% 90%, rgba(184,134,11,0.05) 0%, transparent 70%);
+}
+
+#root { position: relative; z-index: 1; }
+
+/* ── NAV ── */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 60px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px;
+  background: rgba(250,247,242,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.nav-emblem {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: var(--burg);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ffd); font-size: 16px; font-weight: 700; color: #fff;
+  letter-spacing: -1px;
+  box-shadow: 0 2px 12px rgba(123,29,60,0.25);
+}
+.nav-brand {
+  font-family: var(--ffd); font-size: 18px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.3px;
+}
+.nav-brand span { color: var(--burg); }
+.nav-right { display: flex; align-items: center; gap: 14px; }
+.nav-board {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--burg); background: var(--burg-dim);
+  border: 1px solid rgba(123,29,60,0.15);
+  padding: 4px 12px; border-radius: 20px;
+}
+.nav-live {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--green); letter-spacing: 1px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  animation: livepulse 2s ease-in-out infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* ── HERO ── */
+.hero {
+  padding: 120px 48px 64px;
+  max-width: 960px; margin: 0 auto;
+}
+.hero-inner {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.hero-left {}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 2.5px; text-transform: uppercase; color: var(--burg);
+  margin-bottom: 20px;
+}
+.hero-eyebrow::before {
+  content: ''; width: 24px; height: 1px; background: var(--burg);
+}
+.hero-h1 {
+  font-family: var(--ffd);
+  font-size: clamp(36px, 4vw, 56px);
+  font-weight: 800; line-height: 1.1;
+  letter-spacing: -1px; color: var(--ink);
+  margin-bottom: 16px;
+}
+.hero-h1 em {
+  font-style: italic; color: var(--burg);
+}
+.hero-sub {
+  font-size: 15px; font-weight: 300; color: var(--muted);
+  line-height: 1.85; margin-bottom: 32px; max-width: 380px;
+}
+.hero-right {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px;
+  box-shadow: 0 8px 40px rgba(26,18,8,0.08);
+  position: relative;
+}
+.hero-right::before {
+  content: 'ICSE BOARD';
+  position: absolute; top: -10px; left: 24px;
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 2px; color: var(--burg);
+  background: #fff; padding: 0 8px;
+}
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; }
+.stat-item {
+  padding: 18px 16px; text-align: center;
+  background: var(--ivory); border-radius: 10px; margin: 4px;
+}
+.stat-n {
+  font-family: var(--ffd); font-size: 28px; font-weight: 700;
+  color: var(--burg); line-height: 1;
+}
+.stat-l { font-size: 11px; color: var(--muted); margin-top: 4px; letter-spacing: 0.3px; }
+.hero-classes {
+  margin-top: 16px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.class-chip {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--muted); background: var(--ivory2);
+  border: 1px solid var(--border); padding: 3px 10px; border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* ── MAIN ── */
+.main { max-width: 1100px; margin: 0 auto; padding: 0 48px 80px; }
+
+/* ── CARD ── */
+.card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 16px rgba(26,18,8,0.05);
+}
+.card-hd {
+  padding: 18px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--ivory);
+}
+.card-title {
+  font-family: var(--ffd); font-size: 16px; font-weight: 600;
+  color: var(--ink); letter-spacing: -0.3px;
+}
+.card-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.card-body { padding: 28px; }
+
+/* ── FORM ── */
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.fg3 { grid-template-columns: 1fr 1fr 1fr; }
+.ff { grid-column: 1 / -1; }
+
+.fl {
+  display: block; font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.fl span { color: var(--burg); }
+
+.ti {
+  width: 100%; padding: 10px 14px;
+  background: var(--ivory); border: 1.5px solid var(--border);
+  border-radius: 8px; color: var(--ink);
+  font-family: var(--ff); font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s; outline: none;
+}
+.ti::placeholder { color: var(--muted2); }
+.ti:focus { border-color: var(--burg); box-shadow: 0 0 0 3px rgba(123,29,60,0.08); }
+.ti:disabled { opacity: 0.35; cursor: not-allowed; }
+select.ti {
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23C4B09A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+}
+select.ti option { background: var(--ivory); }
+
+/* Multiselect */
+.mw { position: relative; }
+.cb {
+  min-height: 42px; padding: 5px 8px;
+  background: var(--ivory); border: 1.5px solid var(--border);
+  border-radius: 8px; display: flex; flex-wrap: wrap; gap: 5px;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.cb:hover, .cb.open { border-color: var(--burg); }
+.cb-ph { font-size: 13.5px; color: var(--muted2); padding: 3px 5px; align-self: center; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 5px; font-size: 12px; font-weight: 500;
+  background: var(--burg-dim); color: var(--burg);
+  border: 1px solid rgba(123,29,60,0.18); cursor: pointer;
+  transition: background 0.1s;
+}
+.chip:hover { background: rgba(123,29,60,0.14); }
+.dm {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 300;
+  background: #fff; border: 1.5px solid var(--border);
+  border-radius: 10px; max-height: 220px; overflow-y: auto;
+  padding: 5px; box-shadow: 0 12px 40px rgba(26,18,8,0.12);
+}
+.dm.open { display: block; }
+.dopt {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 11px; border-radius: 7px; font-size: 13px;
+  color: var(--ink2); cursor: pointer; transition: background 0.1s;
+}
+.dopt:hover { background: var(--ivory2); }
+.dopt.sel { background: var(--burg-dim); color: var(--burg); }
+.dc {
+  width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+  border: 1.5px solid var(--border); font-size: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.dopt.sel .dc { background: var(--burg-dim); border-color: var(--burg); color: var(--burg); }
+
+/* Seg buttons */
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.sb {
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  border: 1.5px solid var(--border); background: var(--ivory);
+  color: var(--muted); cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-family: var(--ff);
+}
+.sb:hover { border-color: var(--border2); color: var(--ink); }
+.sb.ae { background: rgba(45,106,79,0.08); border-color: rgba(45,106,79,0.3); color: var(--green); }
+.sb.am { background: var(--gold-dim); border-color: rgba(184,134,11,0.3); color: var(--gold); }
+.sb.ah { background: rgba(192,57,43,0.08); border-color: rgba(192,57,43,0.3); color: var(--red); }
+.sb.amx { background: var(--burg-dim); border-color: rgba(123,29,60,0.3); color: var(--burg); }
+.sb.aai { background: var(--burg-dim); border-color: rgba(123,29,60,0.25); color: var(--burg); }
+.sb.soon { opacity: 0.45; position: relative; }
+.soon-tag {
+  font-family: var(--mono); font-size: 8px; letter-spacing: 1px;
+  background: var(--gold-dim); color: var(--gold);
+  padding: 1px 5px; border-radius: 3px;
+}
+
+.time-hint {
+  margin-top: 7px; font-family: var(--mono); font-size: 11px;
+  color: var(--burg); display: flex; align-items: center; gap: 5px; opacity: 0.7;
+}
+.tdot { width: 4px; height: 4px; border-radius: 50%; background: var(--burg); }
+
+.div { height: 1px; background: var(--border); margin: 8px 0 20px; }
+
+/* Generate button */
+.btn-gen {
+  width: 100%; padding: 14px 20px; border-radius: 10px;
+  background: var(--burg);
+  border: none; font-family: var(--ffd); font-size: 16px; font-weight: 700;
+  color: #fff; cursor: pointer; letter-spacing: -0.3px;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: all 0.2s; box-shadow: 0 4px 20px rgba(123,29,60,0.25);
+  position: relative; overflow: hidden;
+}
+.btn-gen::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.btn-gen:hover::before { opacity: 1; }
+.btn-gen:hover { background: var(--burg2); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(123,29,60,0.35); }
+.btn-gen:active { transform: translateY(0); }
+.btn-gen:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Secondary buttons */
+.btn-s {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 18px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: var(--ivory);
+  font-family: var(--ff); font-size: 13px; font-weight: 500;
+  color: var(--muted); cursor: pointer; text-decoration: none;
+  transition: all 0.15s;
+}
+.btn-s:hover { border-color: var(--border2); color: var(--ink); }
+.btn-s.green { border-color: rgba(45,106,79,0.3); color: var(--green); background: var(--green-dim); }
+.btn-s.green:hover { background: rgba(45,106,79,0.12); }
+.btn-s.burg { border-color: rgba(123,29,60,0.25); color: var(--burg); background: var(--burg-dim); }
+.btn-s.burg:hover { background: rgba(123,29,60,0.12); }
+
+/* Loader */
+.lw { text-align: center; padding: 12px 0 4px; }
+.lb { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+.lf {
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--burg), var(--gold), transparent);
+  animation: scan 1.8s ease-in-out infinite; width: 40%;
+}
+@keyframes scan { 0%{margin-left:-40%;} 100%{margin-left:140%;} }
+.lt {
+  font-family: var(--mono); font-size: 11px; color: var(--muted);
+  letter-spacing: 1.5px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.blink { animation: blink 1s step-end infinite; }
+@keyframes blink { 50%{opacity:0;} }
+
+/* Error */
+.err {
+  padding: 12px 16px; background: rgba(192,57,43,0.06);
+  border: 1px solid rgba(192,57,43,0.2); border-radius: 8px;
+  font-size: 13px; color: var(--red); margin-top: 12px;
+  display: flex; align-items: flex-start; gap: 9px;
+}
+
+/* Results */
+.res-hd {
+  padding: 20px 28px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; background: var(--ivory);
+}
+.res-title {
+  font-family: var(--ffd); font-size: 20px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 12px;
+}
+.badge-ok {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--green); background: var(--green-dim);
+  border: 1px solid rgba(45,106,79,0.2); padding: 3px 9px; border-radius: 4px;
+}
+
+/* Meta chips */
+.meta-row { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 28px; border-bottom: 1px solid var(--border); }
+.mc {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+  background: var(--ivory2); border: 1px solid var(--border);
+  padding: 3px 10px; border-radius: 4px; letter-spacing: 0.3px;
+}
+.mc.burg { color: var(--burg); background: var(--burg-dim); border-color: rgba(123,29,60,0.15); }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); padding: 0 28px; }
+.tab {
+  padding: 12px 20px; font-size: 13.5px; font-weight: 500;
+  color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.15s; margin-bottom: -1px; font-family: var(--ff);
+}
+.tab:hover { color: var(--ink2); }
+.tab.active { color: var(--burg); border-bottom-color: var(--burg); font-weight: 600; }
+
+.tc {
+  padding: 28px; max-height: 580px; overflow-y: auto;
+  font-size: 14px; line-height: 1.9; color: var(--ink2);
+}
+.tc::-webkit-scrollbar { width: 4px; }
+.tc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Question cards */
+.q-block {
+  margin-bottom: 20px; padding: 20px 22px;
+  background: var(--ivory);
+  border: 1px solid var(--border); border-radius: 10px;
+  border-left: 3px solid var(--burg);
+}
+.q-num {
+  font-family: var(--mono); font-size: 9px; color: var(--burg);
+  letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px;
+}
+.q-text { font-size: 14.5px; font-weight: 500; color: var(--ink); margin-bottom: 14px; line-height: 1.7; }
+.q-opts { display: flex; flex-direction: column; gap: 7px; }
+.q-opt {
+  padding: 9px 14px; border-radius: 7px; font-size: 13.5px;
+  background: #fff; border: 1px solid var(--border);
+  color: var(--ink2); display: flex; align-items: flex-start; gap: 10px;
+  transition: border-color 0.1s;
+}
+.q-opt:hover { border-color: var(--border2); }
+.q-opt-label {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  color: var(--burg); flex-shrink: 0; margin-top: 1px;
+}
+
+/* Answer key */
+.ak-block {
+  margin-bottom: 14px; padding: 16px 18px;
+  background: rgba(45,106,79,0.04);
+  border: 1px solid rgba(45,106,79,0.12); border-radius: 10px;
+  border-left: 3px solid var(--green);
+}
+.ak-num { font-family: var(--mono); font-size: 9px; color: var(--green); letter-spacing: 2px; margin-bottom: 6px; }
+.ak-ans { font-size: 14px; font-weight: 700; color: var(--green); margin-bottom: 5px; }
+.ak-exp { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* Markdown fallback */
+.md-out strong { color: var(--ink); font-weight: 600; }
+.md-out h1,.md-out h2,.md-out h3 {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  letter-spacing: 2px; text-transform: uppercase; color: var(--burg);
+  margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+}
+.md-out p { margin-bottom: 4px; }
+.md-out hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.md-out code { font-family: var(--mono); font-size: 0.85em; background: var(--ivory2); color: var(--burg); padding: 1px 6px; border-radius: 4px; }
+
+/* Form panel */
+.fp {
+  padding: 20px 28px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 14px; background: var(--ivory);
+}
+.fp-title { font-family: var(--ffd); font-size: 15px; font-weight: 600; color: var(--ink); }
+.fp-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.fl-box {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 14px; background: #fff;
+  border: 1px solid rgba(45,106,79,0.2); border-radius: 8px; margin-top: 8px;
+}
+.fl-url { font-family: var(--mono); font-size: 11px; color: var(--green); word-break: break-all; flex: 1; }
+
+/* How section */
+.how { padding: 64px 48px; max-width: 1100px; margin: 0 auto; }
+.how-eyebrow {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--burg);
+  text-align: center; margin-bottom: 10px;
+}
+.how-h2 {
+  font-family: var(--ffd); font-size: clamp(26px, 3vw, 40px); font-weight: 700;
+  text-align: center; letter-spacing: -1px; color: var(--ink); margin-bottom: 44px;
+  font-style: italic;
+}
+.how-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.how-card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 24px;
+  transition: all 0.2s; box-shadow: 0 2px 12px rgba(26,18,8,0.05);
+}
+.how-card:hover {
+  border-color: rgba(123,29,60,0.2); transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(26,18,8,0.1);
+}
+.how-n { font-family: var(--mono); font-size: 10px; color: var(--muted2); letter-spacing: 2px; margin-bottom: 14px; }
+.how-icon { font-size: 30px; margin-bottom: 12px; }
+.how-ct { font-family: var(--ffd); font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.how-cp { font-size: 13px; color: var(--muted); line-height: 1.75; }
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border); padding: 24px 48px;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  background: var(--ivory2);
+}
+.footer-l { font-size: 13px; color: var(--muted); }
+.footer-r { font-family: var(--mono); font-size: 10px; color: var(--muted2); display: flex; align-items: center; gap: 8px; }
+
+/* Animations */
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)} }
+.a1{animation:fadeUp 0.5s ease both 0.05s}
+.a2{animation:fadeUp 0.6s ease both 0.15s}
+.a3{animation:fadeUp 0.6s ease both 0.25s}
+.a4{animation:fadeUp 0.6s ease both 0.35s}
+.a5{animation:fadeUp 0.6s ease both 0.45s}
+
+@media(max-width:860px){
+  .hero-inner{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .nav{padding:0 20px;}
+  .hero{padding:100px 20px 48px;}
+  .main{padding:0 20px 60px;}
+  .fg,.fg3,.how-grid{grid-template-columns:1fr;}
+  .ff{grid-column:1;}
+  .how{padding:48px 20px;}
+  .footer{padding:20px;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useEffect}=React;
+
+const W1='https://revisionsystem.app.n8n.cloud/webhook/1e2430da-5c8d-44af-b6d6-9602d5f43c31';
+const W2='https://revisionsystem.app.n8n.cloud/webhook/86412da0-9cd7-4220-ada6-a171addc14f5';
+
+const SYLLABUS={
+  "Class 1":{
+    "English":{"Reading":["Simple sentences","Word recognition","Phonics"],"Writing":["Letters","Simple words","Basic sentences"],"Grammar":["Nouns","Articles","Simple present tense"],"Literature - Marigold 1":["A Happy Child","Three Little Pigs","After a Bath","The Bubble the Straw and the Shoe","One Little Kitten","Lalu and Peelu","Mittu and the Yellow Mango","Malu Bhalu","Circle","If I Were an Apple","Our Tree","Sundari"]},
+    "Mathematics":{"Numbers":["Numbers 1-100","Counting","Number names"],"Operations":["Addition","Subtraction"],"Shapes":["2D shapes","Patterns"]},
+    "EVS":{"My World":["My family","My school","My neighbourhood"],"Nature":["Plants","Animals","Weather"]}
+  },
+  "Class 2":{
+    "English":{"Reading":["Comprehension passages","Poems","Stories"],"Writing":["Sentences","Short paragraphs","Letters"],"Grammar":["Nouns","Pronouns","Verbs","Adjectives","Tenses"],"Literature - Marigold 2":["First Day at School","Haldi's Adventure","I am Lucky","I Want","A Smile","The Wind and the Sun","Rain","Storm in the Garden","Funny Bunny","Curlylocks and the Three Bears","On My Blackboard I Can Draw","Make it Shorter"]},
+    "Mathematics":{"Numbers":["Numbers up to 1000","Place value","Comparing numbers"],"Operations":["Addition","Subtraction","Multiplication","Division"],"Measurement":["Length","Weight","Capacity","Time","Money"]},
+    "EVS":{"Living Things":["Plants","Animals","Human body"],"Our Environment":["Food","Water","Air","Transport"]}
+  },
+  "Class 3":{
+    "English":{"Reading":["Comprehension","Poetry","Fiction"],"Writing":["Paragraphs","Letters","Stories"],"Grammar":["Parts of speech","Tenses","Punctuation","Sentence types"],"Literature - Marigold 3":["Good Morning","The Magic Garden","Bird Talk","Nina and the Baby Sparrows","Little by Little","The Enormous Turnip","Sea Song","A Little Fish Story","The Yellow Butterfly","Trains","My Silly Sister","Don't tell","Puppy and I","What's in the Mailbox","Nine Gold Medals"]},
+    "Mathematics":{"Numbers":["Numbers to 10000","Roman numerals","Fractions"],"Operations":["Multiplication","Division","Word problems"],"Geometry":["Lines","Angles","2D shapes"],"Measurement":["Perimeter","Area","Time","Money"]},
+    "EVS":{"Science":["Plants & animals","Food & nutrition","Rocks & soil","Water cycle"],"Social":["Community helpers","Maps","Means of transport","Communication"]}
+  },
+  "Class 4":{
+    "English":{"Reading":["Comprehension passages","Poems","Stories"],"Writing":["Essays","Letters","Stories","Notices"],"Grammar":["Tenses","Voice","Reported speech","Clauses"],"Literature - Marigold 4":["Wake Up","Noses","Run","Why","Pinocchio","Don't be Afraid of the Dark","The Giving Tree","Books","Going to Buy a Book","I Had a Little Pony","Alice in Wonderland","The Naughty Boy","Helen Keller","A Watering Rhyme","The Scholar's Mother Tongue","Hiawatha","The Donkey"]},
+    "Mathematics":{"Numbers":["Large numbers","Factors & multiples","Fractions","Decimals"],"Operations":["All four operations","Word problems"],"Geometry":["Angles","Triangles","Quadrilaterals"],"Data Handling":["Graphs","Tables"]},
+    "Science":{"Living World":["Plant life","Animal life","Human body","Food & health"],"Physical World":["Matter","Force","Light","Sound","Electricity"],"Earth":["Soil","Air & water","Weather","Space"]},
+    "Social Studies":{"Geography":["Earth & globe","India - physical features","Climate & vegetation"],"History":["Ancient India","Medieval India"],"Civics":["Government","Democracy"]}
+  },
+  "Class 5":{
+    "English":{"Reading":["Comprehension","Poetry analysis","Novel extracts"],"Writing":["Essays","Letters","Reports","Stories"],"Grammar":["Tenses","Voice","Narration","Clauses","Punctuation"],"Literature - Marigold 5":["Ice-Cream Man","Wonderful Waste","Teamwork","Flying Together","My Shadow","Robinson Crusoe","Crying","My Elder Brother","The Lazy Frog","Rip Van Winkle","Class Discussion","The Little Bully","Topsy-turvy Land","Gulliver's Travels"]},
+    "Mathematics":{"Numbers":["Integers","Fractions","Decimals","Percentage"],"Algebra":["Introduction to algebra","Simple equations"],"Geometry":["Symmetry","Reflection","Coordinates"],"Mensuration":["Perimeter","Area","Volume"]},
+    "Science":{"Biology":["Cell structure","Plant processes","Human systems"],"Chemistry":["Matter & its properties","Mixtures & solutions","Acids & bases"],"Physics":["Force & motion","Light","Sound","Electricity & magnetism"]},
+    "Social Studies":{"Geography":["World geography","India","Maps & globes"],"History":["Indian history","World history"],"Civics":["Constitutional democracy","Rights & duties"]}
+  },
+  "Class 6":{
+    "English":{"Reading":["Comprehension passages","Poetry","Prose"],"Writing":["Essays","Letters","Notices","Reports"],"Grammar":["Parts of speech","Tenses","Voice","Narration","Clauses"],"Echoes - Prose":["The Ant and the Cricket","I Remember I Remember","The Duck and the Kangaroo","The Book of Nature","The Wonderful Words","The Kite","How the Animals Got Their Colours","Meadow Surprises","Who did Patrick's Homework","The Selfish Giant"],"Echoes - Poetry":["The Ant and the Cricket","I Remember I Remember","The Duck and the Kangaroo","The Kite","Meadow Surprises","Wonderful Words"],"Treasure Chest":["The Merchant of Venice - Stories from Shakespeare","Tales of King Arthur","The Jungle Book","Little Women"]},
+    "Mathematics":{"Number System":["Integers","Fractions","Decimals","Factors & Multiples","HCF & LCM"],"Algebra":["Introduction to Algebra","Linear Equations"],"Geometry":["Basic concepts","Angles","Triangles","Quadrilaterals","Circles"],"Mensuration":["Perimeter","Area"],"Data Handling":["Bar graphs","Pie charts"]},
+    "Science":{"Biology":["Cell - basic unit","Plant kingdom","Animal kingdom","Human body systems"],"Chemistry":["Matter","Elements compounds mixtures","Physical chemical changes","Acids bases salts"],"Physics":["Motion","Force","Light","Sound","Electricity","Magnetism"]},
+    "History":{"Ancient India":["Sources of history","Indus Valley","Vedic Age","Mauryan Empire","Gupta Empire"],"Medieval India":["Delhi Sultanate","Mughal Empire","Bhakti movement"],"Modern India":["British rule","Freedom movement"]},
+    "Geography":{"Physical Geography":["Earth's interior","Rocks","Landforms","Rivers","Climate zones"],"India":["Physical features","Climate","Natural vegetation","Population"]},
+    "Civics":{"Government":["Democracy","Panchayati Raj","State government","Central government","Legislature","Judiciary"]}
+  },
+  "Class 7":{
+    "English":{"Reading":["Comprehension","Poetry","Prose extracts"],"Writing":["Essays","Formal letters","Informal letters","Reports","Notices"],"Grammar":["Advanced tenses","Conditionals","Modals","Reported speech","Clauses"],"Echoes - Prose":["The Scholar's Mother Tongue","When Wisdom Was More Than Gold","The Richer the Poorer","Old Man River","Adventures in a Banyan Tree","The Night the Ghost Got In","The Open Window","The Bear","Bringing Up Kari"],"Echoes - Poetry":["The Bangle Sellers","Leisure","The Listeners","Father Returning Home","Where the Mind is Without Fear","Daffodils","The Patriot"],"Treasure Chest":["Around the World in Eighty Days","The Adventures of Tom Sawyer","Treasure Island","David Copperfield excerpts"]},
+    "Mathematics":{"Number System":["Rational numbers","Exponents & powers","Square & square roots","Cube & cube roots"],"Algebra":["Algebraic expressions","Linear equations","Inequalities"],"Geometry":["Triangles","Congruence","Quadrilaterals","Circles","Symmetry"],"Mensuration":["Area of plane figures","Surface area","Volume"],"Statistics":["Mean","Median","Mode","Probability"]},
+    "Science":{"Biology":["Photosynthesis","Respiration","Nervous system","Reproductive system","Ecology"],"Chemistry":["Atoms & molecules","Chemical reactions","Metals & non-metals","Carbon compounds"],"Physics":["Motion & force","Work energy power","Light optics","Sound waves","Electricity circuits"]},
+    "History":{"Modern India":["British economic policies","Revolt of 1857","Nationalist movement","Gandhi","Independence & partition"]},
+    "Geography":{"Physical Geography":["Atmosphere","Weather & climate","Ocean movements","Natural disasters"],"India":["Agriculture","Industries","Transport","Population"]},
+    "Civics":{"Indian Constitution":["Fundamental rights","Directive principles","Parliamentary system","Judiciary","Local self-government"]}
+  },
+  "Class 8":{
+    "English":{"Reading":["Comprehension passages","Poetry analysis","Critical reading"],"Writing":["Essays","Formal & informal letters","Articles","Reports","Speeches"],"Grammar":["All tenses","Voice","Narration","Clauses","Error correction"],"Echoes - Prose":["The Canterville Ghost","Chief Seattle's Speech","The Nightingale and the Rose","The Model Millionaire","The Story of my Life - Helen Keller","Ozymandias","Macavity the Mystery Cat","Nine Gold Medals","Abou Ben Adhem"],"Echoes - Poetry":["Ozymandias","Macavity the Mystery Cat","Nine Gold Medals","Abou Ben Adhem","The Road Not Taken","If","La Belle Dame Sans Merci"],"Treasure Chest":["The Diary of a Young Girl","Around the World in Eighty Days","Gulliver's Travels","Robinson Crusoe"]},
+    "Mathematics":{"Number System":["Real numbers","Rational & irrational numbers","Indices"],"Algebra":["Polynomials","Factorisation","Linear & quadratic equations","Graphs"],"Geometry":["Triangles","Quadrilaterals","Circles","Loci","Construction"],"Mensuration":["Area","Surface area","Volume of 3D shapes"],"Statistics":["Data handling","Probability"]},
+    "Science":{"Biology":["Cell division","Plant reproduction","Human reproduction","Health & diseases","Environment & ecology"],"Chemistry":["Periodic table","Chemical bonding","Acids bases salts","Metals non-metals","Carbon compounds"],"Physics":["Force & pressure","Light - reflection refraction","Sound","Electricity","Magnetism","Modern physics basics"]},
+    "History":{"World History":["World wars","Russian revolution","Rise of fascism","Cold war","United Nations"],"India After Independence":["Constitution","Five year plans","Non-alignment","Integration of states"]},
+    "Geography":{"Physical Geography":["Population distribution","Human settlements","Natural resources"],"World":["Continents","Countries","Trade & transport"]},
+    "Civics":{"Governance":["Elections","Political parties","Rights & duties","Social justice","India & world"]}
+  },
+  "Class 9":{
+    "English":{"Reading":["Unseen passages","Note making","Summary writing"],"Writing":["Formal letters","Article writing","Story writing","Report writing","Diary entry","Speech"],"Grammar":["Gap filling","Error correction","Sentence transformation","Reported speech"],"Treasure Trove - Short Stories":["The Gift of the Magi - O Henry","The Shadow - Hans Christian Andersen","Bed Number 29 - Isak Dinesen","A Face in the Dark - Ruskin Bond","The Little Match Girl - Hans Christian Andersen","Hearts and Hands - O Henry","The Last Lesson - Alphonse Daudet","P.C. Decius Mus - John Buchan","A Horse and Two Goats - R K Narayan","The Blue Bead - Norah Burke"],"Treasure Trove - Poems":["The Daffodils - Wordsworth","The Seven Ages - Shakespeare","On His Blindness - Milton","The Patriot - Browning","Television - Roald Dahl","The Bangle Sellers - Sarojini Naidu","After Blenheim - Southey","Ozymandias - Shelley","Song of the Rain - Kahlil Gibran","The Road Not Taken - Robert Frost"],"Novel":["To Kill a Mockingbird - Harper Lee","Animal Farm - George Orwell"]},
+    "Mathematics":{"Pure Mathematics":["Commercial mathematics - tax GST banking","Algebra - polynomials factorisation","Simultaneous equations","Indices","Logarithms"],"Geometry":["Triangles","Mid-point theorem","Pythagoras","Rectilinear figures","Circles","Construction"],"Mensuration":["Area & perimeter of plane figures","Surface area & volume of 3D solids"],"Trigonometry":["Trigonometric ratios","Standard angles","Complementary angles"],"Statistics":["Mean median mode","Histogram","Ogive","Probability"],"Coordinate Geometry":["Basics","Distance formula","Section formula","Slope"]},
+    "Physics":{"Measurements":["SI units","Measurement of length mass time","Significant figures"],"Motion":["Scalars & vectors","Linear motion","Equations of motion","Projectile"],"Laws of Motion":["Newton's laws","Momentum","Impulse","Conservation of momentum"],"Fluids":["Pressure","Archimedes principle","Flotation","Viscosity","Surface tension"],"Heat":["Temperature scales","Thermal expansion","Calorimetry","Latent heat","Radiation"],"Light":["Reflection - plane & curved mirrors","Refraction","Lenses","Optical instruments","Spectrum"],"Sound":["Nature of sound","Propagation","Characteristics","Doppler effect"],"Electricity":["Charge","Electric field","Potential","Capacitance","Ohm's law","Circuits"]},
+    "Chemistry":{"Matter":["Atomic structure","Periodic table","Chemical bonding"],"Chemical Reactions":["Types of reactions","Mole concept","Stoichiometry","Oxidation reduction"],"Acids Bases Salts":["Properties","Preparation","Uses","pH","Salts"],"Analytical Chemistry":["Identify ions","Identify gases","Qualitative analysis"],"Organic Chemistry":["Introduction","Hydrocarbons","Functional groups"]},
+    "Biology":{"Basic Biology":["Cell structure","Cell division","Genetics - Mendel's laws","Evolution"],"Plant Life":["Photosynthesis","Mineral nutrition","Transpiration","Reproduction"],"Human Biology":["Nutrition","Digestion","Respiration","Circulatory system","Excretion","Nervous system","Sense organs","Endocrine system","Reproduction"],"Health":["Disease & immunity","Pollution","Conservation"]},
+    "History & Civics":{"History":["Nationalism in Europe","Socialism","World wars","Indian national movement","Independence"],"Civics":["UN","Indian constitution","Elections","Local self-government"]}
+  },
+  "Class 10":{
+    "English":{"Reading":["Unseen passages","Comprehension","Note making"],"Writing":["Letters","Articles","Reports","Speeches","Stories","Diary entry"],"Grammar":["Sentence transformation","Error correction","Gap filling","Question tags"],"Treasure Trove - Short Stories":["A Horse and Two Goats - R K Narayan","The Blue Bead - Norah Burke","Salvatore - W Somerset Maugham","A Shilling for My Mother - Bill Naughton","Two Gentlemen of Verona - A J Cronin","The Letter - Dhumketu","The Bet - Anton Chekhov","The Girl Who Can - Ama Ata Aidoo","The Sound Machine - Roald Dahl","Chief Seattle's Speech"],"Treasure Trove - Poems":["The Daffodils - Wordsworth","The Seven Ages - Shakespeare","On His Blindness - Milton","The Patriot - Browning","Television - Roald Dahl","The Bangle Sellers - Sarojini Naidu","After Blenheim - Southey","Ozymandias - Shelley","Song of the Rain - Kahlil Gibran","The Road Not Taken - Robert Frost","If - Rudyard Kipling","Abou Ben Adhem - Leigh Hunt"],"Drama":["The Merchant of Venice - Shakespeare (Acts I to V)","Julius Caesar - Shakespeare"]},
+    "Mathematics":{"Pure Mathematics":["Commercial maths - GST banking shares","Algebra - quadratic equations linear equations","Ratio proportion variation","Factorisation","Matrices","Arithmetic geometric progression"],"Geometry":["Similarity","Loci","Circles - arcs chords tangents","Constructions"],"Mensuration":["Areas of plane figures","Surface area volume of 3D solids","Combination of solids"],"Trigonometry":["Heights & distances","Applications of trigonometry"],"Statistics":["Mean median mode grouped data","Quartiles","Histogram","Ogive","Probability"],"Coordinate Geometry":["Reflection","Section formula","Equation of line","Slope"]},
+    "Physics":{"Force":["Turning effect","Equilibrium","Machines - levers pulleys"],"Work Energy Power":["Work","Power","Energy","Conservation"],"Light":["Refraction through glass slab","Critical angle TIR","Lenses","Spectrum","Electromagnetic spectrum"],"Sound":["Reflection of sound","Resonance","Natural frequency","Vibrations"],"Electricity":["OHM's law","Resistance in series parallel","Electrical power","House wiring","Safety devices"],"Electromagnetism":["Magnetic field","Electromagnetic induction","Transformers","AC DC"],"Nuclear Physics":["Radioactivity","Nuclear fission fusion","Uses of nuclear energy"]},
+    "Chemistry":{"Periodic Table":["Modern periodic law","Trends in periodic table","Electronic configuration"],"Chemical Bonding":["Ionic bond","Covalent bond","Coordinate bond","Properties"],"Acids Bases Salts":["Arrhenius concept","Properties","Preparation","pH scale","Indicators","Salts"],"Electrolysis":["Faraday's laws","Electrolytic cells","Electrolytic refining","Electroplating"],"Metallurgy":["Extraction of metals","Reactivity series","Alloys"],"Organic Chemistry":["Homologous series","Hydrocarbons","Alcohols","Carboxylic acids","Esters","Plastics","Soaps & detergents"]},
+    "Biology":{"Cell Biology":["Cell cycle","Mitosis","Meiosis","Genetics","Heredity"],"Plant Physiology":["Photosynthesis - light dark reactions","Transpiration","Mineral nutrition","Plant hormones","Reproduction"],"Human Biology":["Nutrition & digestion","Respiratory system","Circulatory system","Excretory system","Nervous system","Endocrine system","Reproductive system"],"Health & Hygiene":["Diseases - bacterial viral fungal","Immunity","Drugs & alcohol","Pollution","Ecosystem","Conservation"]},
+    "History & Civics":{"History":["Nationalism in Asia Africa","Imperialism","World wars - causes events effects","Cold war","Disarmament","UN"],"Civics":["Indian constitution","Fundamental rights & duties","Parliament","PM & cabinet","Judiciary","Local self-government","Electoral system"]}
+  }
+};
+
+function toTitle(s){return s.trim().replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.substr(1).toLowerCase());}
+function calcTime(n,d){return Math.ceil(n*2*(d==='Easy'?0.8:d==='Hard'?1.2:1.0));}
+
+function parseTest(raw){
+  let c=raw.replace(/^=\s*/,'').trim();
+  c=c.replace(/\n\s+([A-D][.)]\s)/g,'\n$1');
+  c=c.replace(/^[\s\S]*?(?=(?:\*{0,2}QUESTIONS?\*{0,2}:?\s*\n|^\s*1[.)]\s))/im,'').trim();
+  if(!c.match(/^(\*{0,2}QUESTIONS?|1[.)]\s)/i)){const f=c.indexOf('\n\n');if(f>0)c=c.slice(f).trim();}
+  c=c.replace(/^\*{0,2}QUESTIONS?:?\*{0,2}\s*\n/im,'').trim();
+  const cl=c.toLowerCase(),ak=cl.search(/answer\s*key/);
+  return{cleaned:c,questions:ak>0?c.slice(0,ak).trim():c,answerKey:ak>0?c.slice(ak).trim():''};
+}
+
+function renderQuestions(text){
+  if(!text)return null;
+  const blocks=text.split(/\n(?=\d+[.)]\s)/).filter(b=>b.trim());
+  if(blocks.length===0)return <div className="md-out" dangerouslySetInnerHTML={{__html:marked.parse(text)}}/>;
+  return blocks.map((block,bi)=>{
+    const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
+    const nm=lines[0].match(/^(\d+)[.)]\s*(.*)/);
+    if(!nm)return null;
+    const opts=[];
+    lines.slice(1).forEach(l=>{
+      const om=l.match(/^([A-D])[.)]\s*(.*)/i);
+      if(om)opts.push({label:om[1].toUpperCase(),text:om[2]});
+    });
+    return(
+      <div key={bi} className="q-block">
+        <div className="q-num">Question {nm[1]}</div>
+        <div className="q-text">{nm[2]}</div>
+        {opts.length>0&&(
+          <div className="q-opts">
+            {opts.map(o=>(
+              <div key={o.label} className="q-opt">
+                <span className="q-opt-label">{o.label}</span>
+                <span>{o.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  });
+}
+
+function renderAnswerKey(text){
+  if(!text)return null;
+  const clean=text.replace(/^\*{0,2}ANSWER\s*KEY:?\*{0,2}\s*\n/im,'').trim();
+  const blocks=clean.split(/\n(?=\d+[.)]\s)/).filter(b=>b.trim());
+  if(blocks.length===0)return <div className="md-out" dangerouslySetInnerHTML={{__html:marked.parse(text)}}/>;
+  return blocks.map((block,bi)=>{
+    const lines=block.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(!lines.length)return null;
+    const nm=lines[0].match(/^(\d+)[.)]\s*(.*)/);
+    if(!nm)return null;
+    const qnum=nm[1];
+    let ans='',expLines=[];
+    lines.forEach((l,li)=>{
+      if(!ans){const am=l.match(/(?:^|Answer:\s*)([A-D])[.)]/i);if(am)ans=am[1].toUpperCase();}
+      if(l.match(/^Explanation:/i))expLines.push(l.replace(/^Explanation:\s*/i,''));
+      else if(li>0&&!l.match(/^[A-D][.)]/i)&&!l.match(/^Answer:/i)&&!l.match(/^\d+[.)]/)&&l.length>2)expLines.push(l);
+    });
+    return(
+      <div key={bi} className="ak-block">
+        <div className="ak-num">Q{qnum}</div>
+        {ans&&<div className="ak-ans">✓ Answer: {ans}</div>}
+        {expLines.length>0&&<div className="ak-exp">{expLines.join(' ').slice(0,300)}</div>}
+      </div>
+    );
+  });
+}
+
+function MS({options,selected,onChange,placeholder,disabled}){
+  const [open,setOpen]=useState(false);
+  const ref=useRef(null);
+  useEffect(()=>{
+    const h=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};
+    document.addEventListener('mousedown',h);
+    return()=>document.removeEventListener('mousedown',h);
+  },[]);
+  const toggle=o=>onChange(selected.includes(o)?selected.filter(s=>s!==o):[...selected,o]);
+  return(
+    <div className="mw" ref={ref} style={{opacity:disabled?0.35:1,pointerEvents:disabled?'none':'auto'}}>
+      <div className={`cb${open?' open':''}`} onClick={()=>setOpen(!open)}>
+        {selected.length===0
+          ?<span className="cb-ph">{placeholder}</span>
+          :selected.map(s=><span key={s} className="chip" onClick={e=>{e.stopPropagation();toggle(s);}}>{s} <span style={{fontSize:'10px',opacity:0.6}}>✕</span></span>)}
+      </div>
+      <div className={`dm${open?' open':''}`}>
+        {options.map(o=>(
+          <div key={o} className={`dopt${selected.includes(o)?' sel':''}`} onClick={()=>toggle(o)}>
+            <div className="dc">{selected.includes(o)?'✓':''}</div>{o}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [cls,setCls]=useState('');
+  const [subject,setSubject]=useState('');
+  const [chapters,setChapters]=useState([]);
+  const [topics,setTopics]=useState([]);
+  const [difficulty,setDifficulty]=useState('');
+  const [numQ,setNumQ]=useState('');
+  const [mode,setMode]=useState('ai_only');
+  const [timeLimit,setTimeLimit]=useState('');
+  const [email,setEmail]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+  const [result,setResult]=useState(null);
+  const [meta,setMeta]=useState(null);
+  const [activeTab,setActiveTab]=useState('questions');
+  const [formLoading,setFormLoading]=useState(false);
+  const [formData,setFormData]=useState(null);
+  const [formError,setFormError]=useState('');
+  const resultRef=useRef(null);
+
+  const subjects=cls?Object.keys(SYLLABUS[cls]||{}):[];
+  const chapterOpts=(cls&&subject)?Object.keys(SYLLABUS[cls]?.[subject]||{}):[];
+  const topicOpts=chapters.flatMap(ch=>SYLLABUS[cls]?.[subject]?.[ch]||[]);
+  const suggestedTime=(numQ&&difficulty)?calcTime(parseInt(numQ),difficulty):null;
+
+  useEffect(()=>{if(suggestedTime)setTimeLimit(String(suggestedTime));},[numQ,difficulty]);
+  useEffect(()=>{setSubject('');setChapters([]);setTopics([]);},[cls]);
+  useEffect(()=>{setChapters([]);setTopics([]);},[subject]);
+  useEffect(()=>{setTopics([]);},[chapters]);
+
+  async function generate(){
+    if(!cls||!subject||chapters.length===0||topics.length===0||!difficulty||!numQ){
+      setError('Please fill in all required fields.');return;
+    }
+    setError('');setLoading(true);setResult(null);setFormData(null);setFormError('');
+    const payload={exam_type:cls,subject:toTitle(subject),chapters,topics,difficulty,num_questions:parseInt(numQ),mode,time_limit:parseInt(timeLimit)||suggestedTime||20,teacher_email:email.trim().toLowerCase(),board:'ICSE'};
+    try{
+      const res=await fetch(W1,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const raw=await res.text();
+      if(!raw||!raw.trim())throw new Error(`Empty response (status ${res.status})`);
+      let text,testId;
+      try{
+        const j=JSON.parse(raw);
+        const row=Array.isArray(j)?j[0]:j;
+        testId=row.test_id||row['Test ID']||null;
+        const genText=row['Generated Text']||row.generated_text||row.output||row.result||null;
+        if(genText){
+          text=genText;
+        } else if(row.questions&&Array.isArray(row.questions)&&row.questions.length>0){
+          let built='QUESTIONS:\n\n';
+          row.questions.forEach(q=>{
+            built+=q.number+'. '+q.question+'\n';
+            const opts=q.options||[q.option1,q.option2,q.option3,q.option4].filter(Boolean);
+            ['A','B','C','D'].forEach((l,i)=>{if(opts[i])built+=l+') '+opts[i]+'\n';});
+            built+='\n';
+          });
+          const hasAnswers=row.questions.some(q=>q.correct_answer||q.correctAnswer||q.answer||q.correct_index!==undefined);
+          if(hasAnswers){
+            built+='\nANSWER KEY:\n\n';
+            const labels=['A','B','C','D'];
+            row.questions.forEach(q=>{
+              const ans=q.correct_answer||q.correctAnswer||q.answer||labels[q.correct_index]||'A';
+              const explanation=q.explanation||'';
+              built+=q.number+'. Answer: '+ans+'\n';
+              if(explanation)built+='Explanation: '+explanation+'\n';
+              built+='\n';
+            });
+          }
+          text=built;
+        } else {
+          text=raw;
+        }
+      }catch(e){text=raw;testId=null;}
+      if(!text||!text.trim())throw new Error('Empty response. Please try again.');
+      const parsed=parseTest(text);
+      setResult(parsed);
+      setMeta({...payload,test_id:testId});
+      setTimeout(()=>resultRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+    }catch(e){setError('Generation failed: '+e.message);}
+    finally{setLoading(false);}
+  }
+
+  async function createForm(){
+    if(!meta?.test_id){setFormError('No Test ID found. Please regenerate.');return;}
+    setFormLoading(true);setFormError('');
+    try{
+      const res=await fetch(W2,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({test_id:meta.test_id})});
+      const data=await res.json();
+      if(data.form_link)data.form_link=data.form_link.replace(/^=+/,'');
+      setFormData(data);
+    }catch(e){setFormError('Form creation failed: '+e.message);}
+    finally{setFormLoading(false);}
+  }
+
+  function copyLink(url){
+    const clean=(url||'').replace(/^=+/,'');
+    navigator.clipboard.writeText(clean)
+      .then(()=>alert('Link copied!'))
+      .catch(()=>{
+        const el=document.createElement('textarea');
+        el.value=clean;document.body.appendChild(el);
+        el.select();document.execCommand('copy');
+        document.body.removeChild(el);alert('Link copied!');
+      });
+  }
+
+  const classes=['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6','Class 7','Class 8','Class 9','Class 10'];
+
+  return(
+    <>
+    {/* NAV */}
+    <nav className="nav">
+      <div className="nav-logo">
+        <div className="nav-emblem">T</div>
+        <span className="nav-brand">TestGen<span>AI</span></span>
+      </div>
+      <div className="nav-right">
+        <span className="nav-board">ICSE Board</span>
+        <div className="nav-live"><div className="live-dot"/>Live</div>
+      </div>
+    </nav>
+
+    {/* HERO */}
+    <div className="hero">
+      <div className="hero-inner">
+        <div className="hero-left">
+          <div className="hero-eyebrow a1">ICSE Test Generator</div>
+          <h1 className="hero-h1 a2">
+            Craft <em>precise</em><br/>
+            ICSE test papers<br/>instantly
+          </h1>
+          <p className="hero-sub a3">
+            Syllabus-aligned MCQ papers for ICSE Classes 1–10, all subjects. Complete with answer keys and Google Form delivery — in 30 seconds.
+          </p>
+        </div>
+        <div className="hero-right a4">
+          <div className="stat-grid">
+            {[['30s','Generation time'],['Cl. 1–10','All ICSE classes'],['6+','Subjects'],['ICSE','Board aligned']].map(([n,l])=>(
+              <div key={l} className="stat-item">
+                <div className="stat-n">{n}</div>
+                <div className="stat-l">{l}</div>
+              </div>
+            ))}
+          </div>
+          <div className="hero-classes">
+            {classes.map(c=><span key={c} className="class-chip">{c}</span>)}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* MAIN */}
+    <div className="main">
+
+      {/* CONFIG CARD */}
+      <div className="card a5">
+        <div className="card-hd">
+          <div>
+            <div className="card-title">Test Configuration</div>
+            <div className="card-sub">Select class, subject and topics to generate your paper</div>
+          </div>
+          {meta&&<span className="badge-ok">✓ Ready</span>}
+        </div>
+        <div className="card-body">
+          <div className="fg">
+            <div>
+              <label className="fl">Class <span>*</span></label>
+              <select className="ti" value={cls} onChange={e=>setCls(e.target.value)}>
+                <option value="">Select class</option>
+                {classes.map(c=><option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="fl">Subject <span>*</span></label>
+              <select className="ti" value={subject} onChange={e=>setSubject(e.target.value)} disabled={!cls}>
+                <option value="">Select subject</option>
+                {subjects.map(s=><option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="ff">
+              <label className="fl">Chapters <span>*</span></label>
+              <MS options={chapterOpts} selected={chapters} onChange={setChapters} placeholder="Select one or more chapters…" disabled={!subject}/>
+            </div>
+            <div className="ff">
+              <label className="fl">Topics <span>*</span></label>
+              <MS options={topicOpts} selected={topics} onChange={setTopics} placeholder="Select topics to cover…" disabled={chapters.length===0}/>
+            </div>
+          </div>
+
+          <div className="div"/>
+
+          <div style={{marginBottom:'20px'}}>
+            <label className="fl">Difficulty <span>*</span></label>
+            <div className="seg">
+              {[['Easy','🟢','ae'],['Moderate','🟡','am'],['Hard','🔴','ah'],['Mixed','🎲','amx']].map(([d,ic,cls])=>(
+                <button key={d} className={`sb ${difficulty===d?cls:''}`} onClick={()=>setDifficulty(d)}>{ic} {d}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="fg fg3">
+            <div>
+              <label className="fl">No. of Questions <span>*</span></label>
+              <input className="ti" type="number" placeholder="e.g. 10" min="1" max="40" value={numQ} onChange={e=>setNumQ(e.target.value)}/>
+            </div>
+            <div>
+              <label className="fl">Time Limit (min)</label>
+              <input className="ti" type="number" placeholder="Auto-calculated" value={timeLimit} onChange={e=>setTimeLimit(e.target.value)}/>
+              {suggestedTime&&<div className="time-hint"><span className="tdot"/>{suggestedTime} min recommended</div>}
+            </div>
+            <div>
+              <label className="fl">Teacher Email</label>
+              <input className="ti" type="email" placeholder="teacher@school.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+            </div>
+          </div>
+
+          <div className="div"/>
+
+          <div style={{marginBottom:'24px'}}>
+            <label className="fl">Mode</label>
+            <div className="seg">
+              <button className={`sb ${mode==='ai_only'?'aai':''}`} onClick={()=>setMode('ai_only')}>🤖 AI Generated</button>
+              <button className="sb soon">⚡ Mixed <span className="soon-tag">SOON</span></button>
+              <button className="sb soon">📚 PYQ Only <span className="soon-tag">SOON</span></button>
+            </div>
+          </div>
+
+          <button className="btn-gen" onClick={generate} disabled={loading}>
+            {loading?<>Generating your test paper…</>:<>Generate ICSE Test Paper →</>}
+          </button>
+
+          {loading&&(
+            <div className="lw">
+              <div className="lb"><div className="lf"/></div>
+              <div className="lt"><span className="blink">▋</span>AI IS WRITING YOUR QUESTIONS</div>
+            </div>
+          )}
+          {error&&<div className="err"><span>⚠</span><span>{error}</span></div>}
+        </div>
+      </div>
+
+      {/* RESULTS */}
+      {result&&(
+        <div className="card" ref={resultRef}>
+          <div className="res-hd">
+            <div className="res-title">
+              Test Paper Generated
+              <span className="badge-ok">✓ SUCCESS</span>
+            </div>
+            <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+              <button className="btn-s" onClick={()=>{
+                const b=new Blob([result.cleaned],{type:'text/plain'});
+                const a=document.createElement('a');
+                a.href=URL.createObjectURL(b);
+                a.download=`ICSE_${meta?.exam_type}_${meta?.subject}_test.txt`;a.click();
+              }}>⬇ Download</button>
+              <button className="btn-s" onClick={()=>copyLink(result.cleaned)}>⎘ Copy All</button>
+            </div>
+          </div>
+
+          <div className="meta-row">
+            {meta&&['ICSE',meta.exam_type,meta.subject,meta.difficulty,`${meta.num_questions} Questions`,`${meta.time_limit} min`].map(v=>(
+              <span key={v} className={`mc ${v==='ICSE'?'burg':''}`}>{v}</span>
+            ))}
+            {meta?.test_id&&<span className="mc" style={{fontFamily:'var(--mono)',fontSize:'9px'}}>ID: {meta.test_id}</span>}
+          </div>
+
+          <div className="tabs">
+            {[['questions','Questions'],['answerkey','Answer Key'],['full','Full Paper']].map(([id,label])=>(
+              <div key={id} className={`tab ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>{label}</div>
+            ))}
+          </div>
+
+          <div className="tc">
+            {activeTab==='questions'&&(renderQuestions(result.questions)||<div className="md-out" dangerouslySetInnerHTML={{__html:marked.parse(result.questions||'')}}/>)}
+            {activeTab==='answerkey'&&(
+              result.answerKey&&result.answerKey.trim()
+                ?renderAnswerKey(result.answerKey)
+                :<p style={{color:'var(--muted)',fontStyle:'italic',fontSize:'13px'}}>Answer key not found. Try regenerating.</p>
+            )}
+            {activeTab==='full'&&<div className="md-out" dangerouslySetInnerHTML={{__html:marked.parse(result.cleaned||'')}}/>}
+          </div>
+
+          <div className="fp">
+            <div>
+              <div className="fp-title">📋 Create Google Form Quiz</div>
+              <div className="fp-sub">Auto-generate a timed quiz and share with students</div>
+            </div>
+            <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+              {!formData&&(
+                <button className="btn-s green" onClick={createForm} disabled={formLoading}>
+                  {formLoading?'Creating…':'✦ Create Google Form'}
+                </button>
+              )}
+              {formData?.form_link&&(
+                <>
+                  <a className="btn-s green" href={(formData.form_link||'').replace(/^=+/,'')} target="_blank">🔗 Open Form</a>
+                  <button className="btn-s burg" onClick={()=>copyLink(formData.form_link)}>⎘ Copy Link</button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {formData?.form_link&&(
+            <div style={{padding:'0 28px 20px'}}>
+              <div className="fl-box">
+                <span className="fl-url">{(formData.form_link||'').replace(/^=+/,'')}</span>
+                {formData.total_questions&&<span style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--green)',whiteSpace:'nowrap'}}>{formData.total_questions} questions</span>}
+              </div>
+            </div>
+          )}
+          {formError&&<div style={{padding:'0 28px 16px'}}><div className="err"><span>⚠</span><span>{formError}</span></div></div>}
+        </div>
+      )}
+    </div>
+
+    {/* HOW IT WORKS */}
+    <div className="how">
+      <div className="how-eyebrow">How it works</div>
+      <h2 className="how-h2">Three steps to a complete ICSE test</h2>
+      <div className="how-grid">
+        {[
+          {n:'01',icon:'📖',title:'Configure',desc:'Select your class, subject, chapters and topics. Set the difficulty and number of questions.'},
+          {n:'02',icon:'✒️',title:'Generate',desc:'AI creates ICSE-aligned MCQs with answer key and detailed explanations in under 30 seconds.'},
+          {n:'03',icon:'📋',title:'Deliver',desc:'One click creates a timed Google Form. Share with students and collect responses instantly.'}
+        ].map(c=>(
+          <div key={c.n} className="how-card">
+            <div className="how-n">{c.n}</div>
+            <div className="how-icon">{c.icon}</div>
+            <div className="how-ct">{c.title}</div>
+            <div className="how-cp">{c.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <footer className="footer">
+      <div className="footer-l">TestGen AI — ICSE Board Test Generator · testgenbud@gmail.com</div>
+      <div className="footer-r"><div className="live-dot"/>System Online</div>
+    </footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
